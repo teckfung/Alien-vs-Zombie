@@ -5,7 +5,7 @@ Alien vs Zombie is a turn-based combat game in which the player controls Alien t
 ![game_board](menu_list.png)
 ![game_board](game_board.png)
 
-Please provide the YouTube link to your [Video Demo](https://youtube.com).
+[Video Demo](https://www.youtube.com/watch?v=CkQIXK6cTqQ).
 
 ## Compilation Instructions
 
