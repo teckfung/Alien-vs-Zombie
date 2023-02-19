@@ -7,31 +7,38 @@
 // Emails: 1211102289@student.mmu.edu.my | 1211102399@student.mmu.edu.my | 1211308797@student.mmu.edu.my
 // Phones: 01110600910 | 0123690301 | 0193361628
 // *********************************************************
+
 #include <iostream>
-#include <string> //for string
-#include <stdlib.h>// the header of the general purpose standard library of c languange
-#include <iomanip> // for setw()
-#include <vector> //for vector
-#include <cstdlib> // for system()
-#include <ctime>   // for time() in srand( time(NULL) );
+#include <string>   // for string
+#include <stdlib.h> // the header of the general purpose standard library of c languange
+#include <iomanip>  // for setw()
+#include <vector>   // for vector
+#include <cstdlib>  // for system()
+#include <ctime>    // for time() in srand( time(NULL) );
+#include <chrono>   // for working with time
+#include <thread>   // for creating and managing threads
+#include <conio.h>  // for _kbhit() & _getch()
 using namespace std;
 
 class Boards
 {
 private:
-    vector<vector<char>> map_; // convention to put trailing underscore
-    int diX_, diY_;          // to indicate private data
-public:
-    Boards(int diX = 9, int diY = 5);
-    void init(int diX, int diY);
-    void display() const;
+    vector<vector<char>> map_;   // convention to put trailing underscore
+    int diX_, diY_, numZombies_; // to indicate private data
+    int alienX_, alienY_;        // new private variable for alien position
+    void placeZombies();
 
-    //int getDimX() const;
-    //int getDimY() const;
-    //char getObject(int x, int y) const;
-    //void setObject(int x, int y, char ch);
-    // bool isEmpty(int x, int y);
-    // bool isInsideMap(int x, int y);
+public:
+    Boards(int diX = 9, int diY = 5, int numzombies = 1);
+    void init(int diX, int diY, int numzombies);
+    void display() const;
+    void changesetting();
+    void defaultsetting();
+    void setNumZombies(int numZombies);
+    void moveAlien();
+    void playGame();
+    void test2();
+    void gameAttribute() const;
 };
 
 class GameObject
@@ -53,19 +60,25 @@ public:
     }
 };
 
-
-Boards::Boards(int diX, int diY)
+Boards::Boards(int diX, int diY, int numzombies)
 {
-    init(diX, diY);
+    init(diX, diY, numzombies);
 }
 
-void Boards::init(int diX, int diY)
+void Boards::init(int diX, int diY, int numzombies)
 {
     diX_ = diX;
     diY_ = diY;
+    numZombies_ = numzombies;
+
+    // set alien position in the middle of the gameboard
+    alienX_ = diX_ / 2;
+    alienY_ = diY_ / 2;
+
     char objects[] = {' ', ' ', '<', '>', 'v', '^', 'r', 'h', 'p', ' '};
     int noOfObjects = 10; // number of objects in the objects array
     // create dynamic 2D array using vector
+
     map_.resize(diY_); // create empty rows
     for (int i = 0; i < diY_; ++i)
     {
@@ -74,21 +87,78 @@ void Boards::init(int diX, int diY)
     // put random characters into the vector array
     for (int i = 0; i < diY_; ++i)
     {
+
         for (int j = 0; j < diX_; ++j)
         {
             int objNo = rand() % noOfObjects;
-            map_[i][j] = objects[objNo];
+            // check if the current cell is the alien's position
+            if (i == alienY_ && j == alienX_)
+                map_[i][j] = 'A'; // set cell content to "A"
+            else
+                map_[i][j] = objects[objNo];
         }
     }
+
+    placeZombies();
+}
+
+void Boards::placeZombies()
+{
+    for (int i = 0; i < numZombies_; ++i)
+    {
+        int x, y;
+        do
+        {
+            x = rand() % diX_;
+            y = rand() % diY_;
+        } while (x == alienX_ && y == alienY_); // The do-while loop will keep generating random positions until a position that is not the middle
+        map_[y][x] = 'Z';
+    }
+}
+
+void Boards::setNumZombies(int numZombies)
+{
+    numZombies_ = numZombies;
+    placeZombies();
+}
+
+void Boards::test2()
+{
+    Boards boards;
+    boards.changesetting();
+    boards.display();
+    boards.gameAttribute();
+}
+
+void testDisplay()
+{
+    Boards boards;
+    boards.display();
+    boards.gameAttribute();
+    boards.moveAlien();
+}
+
+void Defaultset()
+{
+    Boards boards;
+    boards.defaultsetting();
+}
+void Boards::playGame()
+{
+    Boards boards;
+    boards.test2();
+    boards.moveAlien();
 }
 
 void Boards::display() const
 {
-    
-    system("cls");  
+
+    system("cls");
     cout << " --__--__--__--__--__--__" << endl;
     cout << "   Welcome to the game   " << endl;
-    cout << " __--__--__--__--__--__--" << endl << endl << endl;
+    cout << " __--__--__--__--__--__--" << endl
+         << endl
+         << endl;
     // for each row
     for (int i = 0; i < diY_; ++i)
     {
@@ -140,10 +210,45 @@ void Boards::display() const
          << endl;
 }
 
-void test1_1()
+void Boards::gameAttribute() const
 {
-    Boards boards;
-    boards.display();
+    // Set attributes for Alien
+    int alienHealth = 100;
+    int alienAttack = 0;
+
+    // Set random attributes for Zombies
+    srand(time(NULL)); // seed the random number generator with current time
+    // Print out the character attributes for the Alien
+    cout << left << setw(5) << "Alien       :  "
+         << left << setw(5) << "Life: " << alienHealth
+         << left << "   " << setw(5) << "Attack: " << alienAttack << endl;
+    cout << endl;
+    for (int i = 0; i < numZombies_; i++)
+    {
+        int zombieHealth;
+        int zombieAttack;
+        int zombieRange;
+
+        do
+        {
+            zombieHealth = rand() % 201 + 100; // zombie health maximum 250
+
+        } while (zombieHealth % 5 != 0);
+
+        zombieHealth = zombieHealth / 5 * 5; // make it divisible by 5
+        zombieAttack = (rand() % 26) + 5;
+        ;                                    // Zombie attack maximum 30
+        zombieAttack = zombieAttack / 5 * 5; // make it divisible by 5
+        zombieRange = rand() % 10 + 1;       // zombie range maximum 10
+
+        // Print out the character attributes for each zombie
+        cout << left << setw(9) << "Zombie " << i + 1 << "  "
+             << ":  "
+             << "Life: " << left << setw(4) << zombieHealth << "  "
+             << "Attack: " << left << setw(2) << zombieAttack << "  "
+             << "Range: " << left << setw(2) << zombieRange << endl;
+        cout << endl;
+    }
 }
 
 void menulist()
@@ -162,18 +267,17 @@ void menulist()
     cout << "---------------------------------------------------" << endl;
     cout << "|     Enter number '1' to Start the Game          |" << endl;
     cout << "---------------------------------------------------" << endl;
-    cout << "|     Enter number '2' to change the game setting |" << endl;
+    cout << "|     Enter number '2' to view the game commands  |" << endl;
     cout << "---------------------------------------------------" << endl;
-    cout << "|     Enter number '3' to view the game commands  |" << endl;
+    cout << "|     Enter number '3' to view the game objects   |" << endl;
     cout << "---------------------------------------------------" << endl;
-    cout << "|     Enter number '4' to view the game objects   |" << endl;
+    cout << "|     Enter number '4' to view the game story     |" << endl;
     cout << "---------------------------------------------------" << endl;
     cout << "|     Enter number '5' to quit the game           |" << endl;
     cout << "---------------------------------------------------" << endl
-                                                                  << endl
-                                                                  << endl;
+         << endl
+         << endl;
     cout << "Please enter a number: ";
-                                                               
 }
 
 void command()
@@ -184,34 +288,43 @@ void command()
          << "Description" << endl;
     cout << "--------------------------------" << endl;
     cout << left << setw(12) << "1.up"
-         << "Move up" << endl << endl;
+         << "Move up" << endl
+         << endl;
     cout << left << setw(12) << "2.down"
-         << "Move down" << endl << endl;
+         << "Move down" << endl
+         << endl;
     cout << left << setw(12) << "3.left"
-         << "Move left" << endl << endl;
+         << "Move left" << endl
+         << endl;
     cout << left << setw(12) << "4.right"
-         << "Move right" << endl << endl;
+         << "Move right" << endl
+         << endl;
     cout << left << setw(12) << "5.arrow"
-         << "Switch the direction of an arrow object" << endl << endl;
+         << "Switch the direction of an arrow object" << endl
+         << endl;
     cout << left << setw(12) << "6.help"
-         << "List and describe the commands" << endl << endl;
+         << "List and describe the commands" << endl
+         << endl;
     cout << left << setw(12) << "7.save"
-         << "Save the current game" << endl << endl;
+         << "Save the current game" << endl
+         << endl;
     cout << left << setw(12) << "8.load"
-         << "Load saved game" << endl << endl;
+         << "Load saved game" << endl
+         << endl;
     cout << left << setw(12) << "9.quit"
-         << "Quit the game" << endl << endl;
-	
+         << "Quit the game" << endl
+         << endl;
 }
-void defaultsetting(int rows ,int columns ,int zombie)
+
+void Boards::defaultsetting()
 {
     system("cls");
     char choice;
     cout << "DEFAULT GAME SETTINGS" << endl;
     cout << "---------------------" << endl;
-    cout << "Board Rows  : " << rows << endl;
-    cout << "Board Column: " << columns << endl;
-    cout << "Zombie Count: " << zombie << endl
+    cout << "Board Rows  : " << diY_ << endl;
+    cout << "Board Column: " << diX_ << endl;
+    cout << "Zombie Count: " << numZombies_ << endl
          << endl;
 
     do
@@ -221,11 +334,11 @@ void defaultsetting(int rows ,int columns ,int zombie)
         switch (choice)
         {
         case 'y':
-            //changesetting(rows,columns,zombie);
+            playGame();
             break;
 
         case 'n':
-            test1_1();
+            testDisplay();
             break;
 
         default:
@@ -235,34 +348,120 @@ void defaultsetting(int rows ,int columns ,int zombie)
     } while (choice != 'y' && choice != 'n');
 }
 
-void changesetting(int rows, int columns , int zombie)
+void Boards::changesetting()
 {
     system("cls");
     cout << "Board Setting" << endl;
     cout << "-------------" << endl;
     cout << "Enter the new rows: ";
-    cin >> rows; 
-    while (rows % 2 == 0)
+    cin >> diY_;
+    while (diY_ % 2 == 0)
     {
         cout << "Please enter an odd number for the number of rows: ";
-        cin >> rows;
+        cin >> diY_;
     }
     cout << "Enter the new columns: ";
-    cin >> columns;
-    while (columns % 2 == 0)
+    cin >> diX_;
+    while (diX_ % 2 == 0)
     {
         cout << "Please enter an odd number for the number of columns: ";
-        cin >> columns;
+        cin >> diX_;
     }
     cout << "Enter the new zombies: ";
-    cin >> zombie;
-    cout << "Settings Updated.";
-   
-
-
-
+    cin >> numZombies_;
+    while (numZombies_ >= 10)
+    {
+        cout << "The number of zombies cannot exceed 9. Please enter again the amount of zombies: ";
+        cin >> numZombies_;
+    }
+    init(diX_, diY_, numZombies_);
+    cout << endl;
+    cout << endl;
+    cout << "Settings Updated." << endl;
+    system("pause");
 }
 
+void Boards::moveAlien()
+{
+    bool done = false;
+    do
+    {
+        Boards boards;
+        // boards.display();
+
+        char direction;
+        cout << "Enter the direction of the alien (v, ^, >, <): ";
+        cin >> direction;
+        switch (direction)
+        {
+        case 'v':
+            if (alienY_ + 1 < diY_)
+            {
+                map_[alienY_][alienX_] = ' ';
+                alienY_++;
+                map_[alienY_][alienX_] = 'A';
+            }
+            else
+            {
+                cout << "Warning: Alien cannot move further down!" << endl;
+            }
+
+            display();
+            boards.gameAttribute();
+            break;
+        case '^':
+            if (alienY_ - 1 >= 0)
+            {
+                map_[alienY_][alienX_] = ' ';
+                alienY_--;
+                map_[alienY_][alienX_] = 'A';
+            }
+            else
+            {
+                cout << "Warning: Alien cannot move further up!" << endl;
+            }
+            display();
+            boards.gameAttribute();
+            break;
+        case '>':
+            if (alienX_ + 1 < diX_)
+            {
+                map_[alienY_][alienX_] = ' ';
+                alienX_++;
+                map_[alienY_][alienX_] = 'A';
+            }
+            else
+            {
+                cout << "Warning: Alien cannot move further to the right!" << endl;
+            }
+            display();
+            boards.gameAttribute();
+            break;
+        case '<':
+            if (alienX_ - 1 >= 0)
+            {
+                map_[alienY_][alienX_] = ' ';
+                alienX_--;
+                map_[alienY_][alienX_] = 'A';
+            }
+            else
+            {
+                cout << "Warning: Alien cannot move further to the left!" << endl;
+            }
+            display();
+            boards.gameAttribute();
+            break;
+        case 'q':
+            done = true;
+            break;
+
+        default:
+            cout << "Invalid Direction, try again" << endl;
+            cout << endl;
+            break;
+        }
+    } while (!done);
+}
 
 void gameObject()
 {
@@ -286,42 +485,60 @@ void gameObject()
     cout << endl;
     GameObject Trail("6. Trail(.)", "Left by Alien when it moves and reset a random game object");
     Trail.print();
-    cout << endl << endl;
+    cout << endl
+         << endl;
+}
 
-	
+void gamestory()
+{
+    system("cls");
+    cout << "Press 'Q' to stop reading" << endl
+         << endl;
+    const char *story = "Once upon a time, on a distant planet,\nthere lived a peaceful and technologically advanced alien race.\nThey lived harmoniously, exploring the universe and discovering new worlds.\nOne day, as they were exploring a new planet,\nthey stumbled upon a strange virus that turned its hosts into\nMindless, Flesh-Eating Zombies.\nThe virus quickly spread, infecting most of the planet's population\nturning it into a post-apocalyptic wasteland.\nThe aliens, being the technologically advanced beings they were,\ntried to find a cure for the virus but to no avail.\nThey realized that the only way to contain the virus\nwas to eliminate all the zombies and prevent it from spreading to other planets.\nSo, the aliens sent one of their best soldiers -> YOU\nto the infected planet, armed with their most advanced weapons and technology.\nThe commander assigned you a secret mission: \"Eliminate All Zombies\".\nThey hoped that you would be able to eliminate all of the zombies and return safely to your home planet.";
 
+    for (const char *c = story; *c != '\0'; ++c)
+    {
+        cout << *c;
+        cout.flush();
+        this_thread::sleep_for(chrono::milliseconds(50));
+
+        if (_kbhit() && _getch() == 'q')
+        {
+            break;
+        }
+    }
+
+    cout << endl
+         << endl;
 }
 
 int main()
 {
     int selection;
     bool done = false;
-    int rows = 5, columns = 9, zombie = 1;
-    srand(1); // use this for fixed map during testing
-    srand(time(NULL)); // try this for random map
-    
-    
-    //changesetting(rows,columns,zombie);
+
+    srand(1);          //  for fixed map during testing
+    srand(time(NULL)); //  for random map
 
     do
     {
         menulist();
-        
+
         cin >> selection;
 
         switch (selection)
         {
         case 1:
-            test1_1();
+            Defaultset();
             break;
         case 2:
-            defaultsetting(5,9,1);
-            break;
-        case 3:
             command();
             break;
-        case 4:
+        case 3:
             gameObject();
+            break;
+        case 4:
+            gamestory();
             break;
         case 5:
             done = true;
